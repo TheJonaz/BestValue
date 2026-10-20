@@ -1,0 +1,11 @@
+package-as: BestValue
+
+manual-changelog:
+  filename: CHANGELOG.md
+  markup-type: markdown
+
+ignore:
+  - build.sh
+  - logo.svg
+  - dist
+  - "*.zip"

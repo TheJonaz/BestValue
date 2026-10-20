@@ -1,0 +1,11 @@
+## Interface: 120105
+## Title: Best Value
+## Notes: Highlights the quest reward that sells for the most at a vendor.
+## Author: Jonaz
+## Version: @project-version@
+## X-License: MIT
+## SavedVariables: BestValueDB
+## IconTexture: Interface\AddOns\BestValue\logo.png
+## AddonCompartmentFunc: BestValue_OnAddonCompartmentClick
+
+BestValue.lua

@@ -1,0 +1,10 @@
+## Interface: 16001, 11508, 11509, 20506, 38000, 40402, 50504
+## Title: Best Value
+## Notes: Highlights the quest reward that sells for the most at a vendor.
+## Author: Jonaz
+## Version: @project-version@
+## X-License: MIT
+## SavedVariables: BestValueDB
+## IconTexture: Interface\AddOns\BestValue\logo.png
+
+BestValue.lua
