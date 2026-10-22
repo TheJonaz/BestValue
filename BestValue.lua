@@ -610,7 +610,7 @@ local function BuildOptions(parent)
 		"Prints the best reward to chat when turning in a quest.")
 	y = Section(parent, y - 6, "Auto-sell")
 	y = Toggle(parent, y, "autoSell", "Enable auto-sell",
-		"Adds a checkbox to the turn-in window. Checked rewards are sold at the next vendor.")
+		"Adds a sell checkbox to the quest turn-in window and to group loot rolls.")
 	y = Toggle(parent, y, "autoSellDefault", "Check the box by default",
 		"The sell checkbox starts checked on every quest turn-in.",
 		function() return db.autoSell end)
@@ -916,16 +916,110 @@ local function RetryLoot()
 	for _, l in ipairs(list) do HandleLoot(l.link, l.count) end
 end
 
+-- Group loot rolls: a "Sell" checkbox above each roll frame. The answer is remembered
+-- per item and applied when the loot message for that item arrives (if you win it).
+local rollChoices = {} -- item ID -> { sell = bool, time = GetTime() }
+local ROLL_CHOICE_TTL = 600
+
+local function FindRollFrame(rollID)
+	for i = 1, NUM_GROUP_LOOT_FRAMES or 4 do
+		local f = _G["GroupLootFrame" .. i]
+		if f and f:IsShown() and f.rollID == rollID then return f end
+	end
+	local container = GroupLootContainer
+	if container and container.rollFrames then
+		for _, f in pairs(container.rollFrames) do
+			if type(f) == "table" and f.IsShown and f:IsShown() and f.rollID == rollID then return f end
+		end
+	end
+end
+
+local function GetRollCheck(frame)
+	if frame.BestValueSell then return frame.BestValueSell end
+	local cb = CreateFrame("CheckButton", nil, frame, "UICheckButtonTemplate")
+	cb:SetSize(22, 22)
+	cb:SetFrameLevel(frame:GetFrameLevel() + 5)
+	cb.label = cb:CreateFontString(nil, "OVERLAY", "GameFontNormalSmall")
+	cb.label:SetPoint("RIGHT", cb, "LEFT", -1, 0)
+	cb.label:SetText("Sell at vendor")
+	cb:SetPoint("BOTTOMRIGHT", frame, "TOPRIGHT", -4, 0)
+	cb:SetHitRectInsets(-cb.label:GetStringWidth() - 4, 0, 0, 0)
+	cb:SetScript("OnClick", function(self)
+		local checked = self:GetChecked() and true or false
+		if self.itemID then
+			rollChoices[self.itemID] = { sell = checked, time = GetTime() }
+		end
+		PlayCheckSound(checked)
+	end)
+	cb:SetScript("OnEnter", function(self)
+		GameTooltip:SetOwner(self, "ANCHOR_TOP")
+		GameTooltip:AddLine("Best Value")
+		GameTooltip:AddLine("If you win this item, sell it at the next vendor.", 1, 1, 1, true)
+		GameTooltip:Show()
+	end)
+	cb:SetScript("OnLeave", function() GameTooltip:Hide() end)
+	frame.BestValueSell = cb
+	return cb
+end
+
+local function DecorateRoll(rollID, attempt)
+	if not (db and db.autoSell) then return end
+	local link = GetLootRollItemLink(rollID)
+	local id = ItemID(link)
+	local frame = FindRollFrame(rollID)
+	if not (id and frame) then
+		-- The roll frame may not be set up yet; retry briefly.
+		if attempt < 5 then
+			C_Timer.After(0.1, function() DecorateRoll(rollID, attempt + 1) end)
+		end
+		return
+	end
+	local cb = GetRollCheck(frame)
+	local price = select(11, GetItemInfo(link))
+	if price == 0 then
+		cb:Hide()
+		return
+	end
+	-- Default: checked in automatic mode when the quality is selected.
+	local quality = select(3, GetItemInfo(link))
+	local key = quality and QUALITY_KEYS[quality]
+	local checked = db.lootMode == "auto" and key and db[key] and true or false
+	cb.itemID = id
+	cb:SetChecked(checked)
+	rollChoices[id] = { sell = checked, time = GetTime() }
+	cb:Show()
+end
+
+-- Returns the remembered roll answer for this item, if any, and forgets it.
+local function TakeRollChoice(id)
+	local choice = id and rollChoices[id]
+	if not choice then return end
+	rollChoices[id] = nil
+	if GetTime() - choice.time <= ROLL_CHOICE_TTL then return choice.sell end
+end
+
 local function OnLootMessage(msg)
-	if not db or db.lootMode == "off" or type(msg) ~= "string" then return end
+	if not db or type(msg) ~= "string" then return end
 	-- Retail can hide chat contents from addons inside instances ("secret" values).
 	if issecretvalue and issecretvalue(msg) then return end
-	local inInstance, kind = IsInInstance()
-	if not inInstance or (kind ~= "party" and kind ~= "raid") then return end
 	for _, pattern in ipairs(lootPatterns) do
 		local link, count = msg:match(pattern)
 		if link then
-			HandleLoot(link, tonumber(count) or 1)
+			count = tonumber(count) or 1
+			local sell = TakeRollChoice(ItemID(link))
+			if sell ~= nil then
+				-- Already answered on the roll frame.
+				local price = select(11, GetItemInfo(link))
+				if sell and price and price > 0 then
+					QueueSale({ id = ItemID(link), count = count, link = link, price = price })
+				end
+				return
+			end
+			if db.lootMode == "off" then return end
+			local inInstance, kind = IsInInstance()
+			if inInstance and (kind == "party" or kind == "raid") then
+				HandleLoot(link, count)
+			end
 			return
 		end
 	end
@@ -939,6 +1033,7 @@ f:RegisterEvent("QUEST_COMPLETE")
 f:RegisterEvent("QUEST_FINISHED")
 f:RegisterEvent("GET_ITEM_INFO_RECEIVED")
 f:RegisterEvent("CHAT_MSG_LOOT")
+f:RegisterEvent("START_LOOT_ROLL")
 f:SetScript("OnEvent", function(_, event, arg1)
 	if event == "ADDON_LOADED" then
 		if arg1 ~= "BestValue" then return end
@@ -974,6 +1069,9 @@ f:SetScript("OnEvent", function(_, event, arg1)
 		RetryLoot()
 	elseif event == "CHAT_MSG_LOOT" then
 		OnLootMessage(arg1)
+	elseif event == "START_LOOT_ROLL" then
+		-- Let Blizzard's handler assign the roll to a frame first.
+		C_Timer.After(0, function() DecorateRoll(arg1, 0) end)
 	end
 end)
 

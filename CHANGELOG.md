@@ -6,6 +6,8 @@
   Choose the mode in `/bv`: Off, Ask per item (a popup with Sell at vendor / Keep) or Automatic.
 - Choose which qualities count: Poor, Common, Uncommon, Rare/Epic. Quest items and items
   that can't be sold are skipped.
+- "Sell at vendor" checkbox above group loot roll frames: if you win the item, it is sold at the next vendor.
+  Starts checked in Automatic mode for the selected qualities.
 - Titan Panel tooltip shows the dungeon/raid loot mode.
 - One release zip for every game version: Retail reads `BestValue_Mainline.toc`, Forever and Classic read `BestValue.toc`.
 - Releases are uploaded automatically to CurseForge, Wago and WoWInterface (BigWigs Packager).
