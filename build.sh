@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Local build of the same zip the release workflow uploads. The game picks the right TOC:
-# Retail reads BestValue_Mainline.toc, Forever and Classic read BestValue.toc.
+# Retail reads BestValue_Mainline.toc, Forever reads BestValue_Forever.toc and Classic reads BestValue.toc.
 #
 #   ./build.sh            build dist/BestValue-<version>.zip
 #   ./build.sh install    build, then copy the addon into every game's AddOns folder
@@ -14,7 +14,7 @@ WOW="$HOME/Games/battlenet/drive_c/Program Files (x86)/World of Warcraft"
 GAME_FOLDERS=(_classic_beta_ _retail_)
 
 # Files that go into the release (logo.svg is only the source for logo.png).
-FILES=(BestValue.lua BestValue.toc BestValue_Mainline.toc CHANGELOG.md LICENSE logo.png)
+FILES=(BestValue.lua BestValue.toc BestValue_Forever.toc BestValue_Mainline.toc CHANGELOG.md LICENSE logo.png)
 
 # Same version the packager would use: the latest tag, plus commits since then.
 VERSION="$(git -C "$ROOT" describe --tags --always 2>/dev/null || echo dev)"

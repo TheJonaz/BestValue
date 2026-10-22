@@ -9,7 +9,7 @@
 - "Sell at vendor" checkbox above group loot roll frames: if you win the item, it is sold at the next vendor.
   Starts checked in Automatic mode for the selected qualities.
 - Titan Panel tooltip shows the dungeon/raid loot mode.
-- One release zip for every game version: Retail reads `BestValue_Mainline.toc`, Forever and Classic read `BestValue.toc`.
+- One release zip for every game version: Retail reads `BestValue_Mainline.toc`, Forever reads `BestValue_Forever.toc`, Classic reads `BestValue.toc`.
 - Releases are uploaded automatically to CurseForge, Wago and WoWInterface (BigWigs Packager).
 
 ## 1.2.0 - 2026-10-16
